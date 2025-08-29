@@ -42,6 +42,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <cmath>
+#include <limits>
 #include <algorithm>
 #include "region_mesh_tet.h"
 #include "lammps.h"
@@ -201,8 +202,17 @@ int RegTetMesh::surface_interior(double *x, double cutoff)
 
 int RegTetMesh::surface_exterior(double *x, double cutoff)
 {
-  error->one(FLERR,"This feature is not available for tet mesh regions");
-  return 0;
+    double minDistToTet = std::numeric_limits<double>::max();
+    for(int i = 0; i < nTet; i++)
+   {
+        if (dist_to_tet(i,x) < minDistToTet) 
+        {
+            minDistToTet = dist_to_tet(i,x);
+        }
+        
+   }
+   if (minDistToTet < cutoff) return 1;
+    return 0;
 }
 
 /* ---------------------------------------------------------------------- */
@@ -722,6 +732,123 @@ double RegTetMesh::volume_of_tet(double* v0, double* v1, double* v2, double* v3)
    double volume = cp[0] * C[0] + cp[1] * C[1] + cp[2] * C[2];
    volume /= 6.;
    return volume;
+}
+
+double RegTetMesh::dist_to_tet(int iTet,double *pos)
+{
+    double P[3] = {pos[0],pos[1],pos[2]};
+    double A[3] = {node[iTet][0][0],node[iTet][0][1],node[iTet][0][2]}; 
+    double B[3] = {node[iTet][1][0],node[iTet][1][1],node[iTet][1][2]}; 
+    double C[3] = {node[iTet][2][0],node[iTet][2][1],node[iTet][2][2]}; 
+    double D[3] = {node[iTet][3][0],node[iTet][3][1],node[iTet][3][2]}; 
+
+    auto dot = [](const double u[3], const double v[3]) {
+        return u[0]*v[0] + u[1]*v[1] + u[2]*v[2];
+    };
+
+    auto cross = [](const double u[3], const double v[3], double out[3]) {
+        out[0] = u[1]*v[2] - u[2]*v[1];
+        out[1] = u[2]*v[0] - u[0]*v[2];
+        out[2] = u[0]*v[1] - u[1]*v[0];
+    };
+
+    auto sub = [](const double u[3], const double v[3], double out[3]) {
+        out[0] = u[0]-v[0]; out[1] = u[1]-v[1]; out[2] = u[2]-v[2];
+    };
+
+    auto norm2 = [&](const double u[3]) { return dot(u,u); };
+    auto norm = [&](const double u[3]) { return std::sqrt(norm2(u)); };
+
+    // Check if point is inside tetrahedron using signed volumes
+    auto volume = [&](const double X[3], const double Y[3], 
+                      const double Z[3], const double W[3]) {
+        double XY[3], XZ[3], tmp[3];
+        sub(Y,W,XY);
+        sub(Z,W,XZ);
+        sub(X,W,tmp);
+        double c[3];
+        cross(XY,XZ,c);
+        return dot(tmp,c) / 6.0;
+    };
+
+    double v  = volume(A,B,C,D);
+    double v1 = volume(P,B,C,D);
+    double v2 = volume(A,P,C,D);
+    double v3 = volume(A,B,P,D);
+    double v4 = volume(A,B,C,P);
+
+    if ((v>=0 && v1>=0 && v2>=0 && v3>=0 && v4>=0) ||
+        (v<=0 && v1<=0 && v2<=0 && v3<=0 && v4<=0)) {
+        return 0.0; // inside
+    }
+
+    // Closest point on triangle (Ericson algorithm)
+    auto closestPointTriangleDist2 = [&](const double P[3], 
+                                         const double A[3],
+                                         const double B[3],
+                                         const double C[3]) {
+        double AB[3], AC[3], AP[3];
+        sub(B,A,AB); sub(C,A,AC); sub(P,A,AP);
+        double d1 = dot(AB,AP);
+        double d2 = dot(AC,AP);
+        if (d1 <= 0 && d2 <= 0) {
+            double tmp[3]; sub(P,A,tmp); return norm2(tmp);
+        }
+
+        double BP[3]; sub(P,B,BP);
+        double d3 = dot(AB,BP);
+        double d4 = dot(AC,BP);
+        if (d3 >= 0 && d4 <= d3) {
+            double tmp[3]; sub(P,B,tmp); return norm2(tmp);
+        }
+
+        double vc = d1*d4 - d3*d2;
+        if (vc <= 0 && d1 >= 0 && d3 <= 0) {
+            double v = d1 / (d1 - d3);
+            double proj[3] = { A[0] + v*AB[0], A[1] + v*AB[1], A[2] + v*AB[2] };
+            double tmp[3]; sub(P,proj,tmp); return norm2(tmp);
+        }
+
+        double CP[3]; sub(P,C,CP);
+        double d5 = dot(AB,CP);
+        double d6 = dot(AC,CP);
+        if (d6 >= 0 && d5 <= d6) {
+            double tmp[3]; sub(P,C,tmp); return norm2(tmp);
+        }
+
+        double vb = d5*d2 - d1*d6;
+        if (vb <= 0 && d2 >= 0 && d6 <= 0) {
+            double w = d2 / (d2 - d6);
+            double proj[3] = { A[0] + w*AC[0], A[1] + w*AC[1], A[2] + w*AC[2] };
+            double tmp[3]; sub(P,proj,tmp); return norm2(tmp);
+        }
+
+        double va = d3*d6 - d5*d4;
+        if (va <= 0 && (d4-d3) >= 0 && (d5-d6) >= 0) {
+            double w = (d4-d3) / ((d4-d3)+(d5-d6));
+            double BC[3]; sub(C,B,BC);
+            double proj[3] = { B[0] + w*BC[0], B[1] + w*BC[1], B[2] + w*BC[2] };
+            double tmp[3]; sub(P,proj,tmp); return norm2(tmp);
+        }
+
+        // inside face
+        double denom = 1.0 / (va+vb+vc);
+        double v = vb*denom;
+        double w = vc*denom;
+        double proj[3] = { A[0] + AB[0]*v + AC[0]*w,
+                           A[1] + AB[1]*v + AC[1]*w,
+                           A[2] + AB[2]*v + AC[2]*w };
+        double tmp[3]; sub(P,proj,tmp); return norm2(tmp);
+    };
+
+    // Test 4 faces
+    double d2 = std::numeric_limits<double>::infinity();
+    d2 = std::min(d2, closestPointTriangleDist2(P,A,B,C));
+    d2 = std::min(d2, closestPointTriangleDist2(P,A,B,D));
+    d2 = std::min(d2, closestPointTriangleDist2(P,A,C,D));
+    d2 = std::min(d2, closestPointTriangleDist2(P,B,C,D));
+
+    return std::sqrt(d2);
 }
 
 /* ---------------------------------------------------------------------- */

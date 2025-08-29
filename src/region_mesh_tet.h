@@ -82,7 +82,7 @@ class RegTetMesh : public Region {
   { return &tri_mesh; }
 
  protected:
-
+   double dist_to_tet(int iTet,double *pos);
    int is_inside_tet(int iTet,double *pos);
    bool nodesAreEqual(double *nodeToCheck1,double *nodeToCheck2,double precision);
 
