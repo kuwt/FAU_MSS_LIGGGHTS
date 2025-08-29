@@ -85,7 +85,7 @@ endef
 
 # Output check with echo
 ECHO := echo
-TMPFILE = /tmp/liggghtscompile.tmp
+TMPFILE = /tmp/liggghtscompile.c
 TMP = $(shell $(ECHO) "\n" > $(TMPFILE) && cat $(TMPFILE))
 EMPTY =
 ifneq ($(TMP), $(EMPTY))
@@ -890,7 +890,7 @@ ifeq ($(USE_VTK), "ON")
                 VTK_LIB =
             endif
         endif
-        TMP := $(shell $(ECHO) '$Hinclude <vtkVersion.h> \n int main(){}' > $(TMPFILE) && $(CXX) $(EXTRA_LIB) $(VTK_LIB) $(VTK_INC) $(EXTRA_ADDLIBS) -lvtkCommon$(VTK_APPENDIX_5) $(CCFLAGS) -xc++ -o /dev/null $(TMPFILE) 2> /dev/null && echo 0 || echo -1)
+        TMP := $(shell $(ECHO) '$Hinclude <vtkVersion.h> \n int main(){}' > $(TMPFILE) && $(CXX) $(EXTRA_LIB) $(VTK_LIB) $(VTK_INC) $(EXTRA_ADDLIBS) $(TMPFILE) -lvtkCommon$(VTK_APPENDIX_5) $(CCFLAGS) -xc++ -o /dev/null  2> /dev/null && echo 0 || echo -1)
         ifeq ($(TMP), -1)
             ifeq ($(VTK_LIB_SET), 0)
                 VTK_LIB := -L$(dir $(shell find $(VTK_BASE_PATH)/lib* -name 'libvtkCommon.so' | tail -n 1))
@@ -898,7 +898,7 @@ ifeq ($(USE_VTK), "ON")
                     VTK_LIB =
                 endif
             endif
-            TMP := $(shell $(ECHO) '$Hinclude <vtkVersion.h> \n int main(){}' > $(TMPFILE) && $(CXX) $(EXTRA_LIB) $(VTK_LIB) $(VTK_INC) $(EXTRA_ADDLIBS) -lvtkCommon $(CCFLAGS) -xc++ -o /dev/null $(TMPFILE) 2> /dev/null && echo 0 || echo -1)
+            TMP := $(shell $(ECHO) '$Hinclude <vtkVersion.h> \n int main(){}' > $(TMPFILE) && $(CXX) $(EXTRA_LIB) $(VTK_LIB) $(VTK_INC) $(EXTRA_ADDLIBS) $(TMPFILE) -lvtkCommon $(CCFLAGS) -xc++ -o /dev/null  2> /dev/null && echo 0 || echo -1)
             ifeq ($(TMP), -1)
                 $(error 'Could not determine suitable appendix of VTK library with VTK_INC="$(VTK_INC)", VTK_LIB="$(VTK_LIB)" and VTK_APPENDIX="$(VTK_APPENDIX)"')
             else
@@ -927,9 +927,9 @@ ifeq ($(USE_VTK), "ON")
         endif
         ifeq ($(AUTO_DEBUG),1)
             $(shell $(ECHO) "#vtk_lib: $(VTK_LIB)" >> $(AUTO_LOG_FILE))
-            $(shell $(ECHO) "#appendix command: $(CXX) $(EXTRA_LIB) $(VTK_LIB) $(VTK_INC) $(EXTRA_ADDLIBS) -lvtksys$(VTK_APPENDIX) $(CCFLAGS) -xc++ -o /dev/null $(TMPFILE)" >> $(AUTO_LOG_FILE))
+            $(shell $(ECHO) "#appendix command: $(CXX) $(EXTRA_LIB) $(VTK_LIB) $(VTK_INC) $(EXTRA_ADDLIBS) $(TMPFILE) -lvtksys$(VTK_APPENDIX) $(CCFLAGS) -xc++ -o /dev/null " >> $(AUTO_LOG_FILE))
         endif
-        TMP := $(shell $(ECHO) '$Hinclude <vtkVersion.h> \n int main(){}' > $(TMPFILE) && $(CXX) $(EXTRA_LIB) $(VTK_LIB) $(VTK_INC) $(EXTRA_ADDLIBS) -lvtksys$(VTK_APPENDIX) $(CCFLAGS) -xc++ -o /dev/null $(TMPFILE) 2>> $(AUTO_LOG_FILE) && echo 0 || echo -1)
+        TMP := $(shell $(ECHO) '$Hinclude <vtkVersion.h> \n int main(){}' > $(TMPFILE) && $(CXX) $(EXTRA_LIB) $(VTK_LIB) $(VTK_INC) $(EXTRA_ADDLIBS) $(TMPFILE) -lvtksys$(VTK_APPENDIX) $(CCFLAGS) -xc++ -o /dev/null  2>> $(AUTO_LOG_FILE) && echo 0 || echo -1)
         ifeq ($(TMP), -1)
             ifeq ($(AUTO_DEBUG),1)
                 $(shell $(ECHO) "#attempting without appendix" >> $(AUTO_LOG_FILE))
@@ -940,7 +940,7 @@ ifeq ($(USE_VTK), "ON")
                     VTK_LIB =
                 endif
             endif
-            TMP := $(shell $(ECHO) '$Hinclude <vtkVersion.h> \n int main(){}' > $(TMPFILE) && $(CXX) $(EXTRA_LIB) $(VTK_LIB) $(VTK_INC) $(EXTRA_ADDLIBS) -lvtksys $(CCFLAGS) -xc++ -o /dev/null $(TMPFILE) 2>> $(AUTO_LOG_FILE) && echo 0 || echo -1)
+            TMP := $(shell $(ECHO) '$Hinclude <vtkVersion.h> \n int main(){}' > $(TMPFILE) && $(CXX) $(EXTRA_LIB) $(VTK_LIB) $(VTK_INC) $(EXTRA_ADDLIBS)  $(TMPFILE) -lvtksys $(CCFLAGS) -xc++ -o /dev/null 2>> $(AUTO_LOG_FILE) && echo 0 || echo -1)
             ifeq ($(TMP), -1)
                 $(error 'Could not determine suitable appendix of VTK library with VTK_INC="$(VTK_INC)", VTK_LIB="$(VTK_LIB)" and VTK_APPENDIX="$(VTK_APPENDIX)"')
             else
@@ -1035,9 +1035,9 @@ ifeq ($(USE_VTK), "ON")
         $(shell $(ECHO) "#vtk_addlibs: $(VTK_ADDLIBS)" >> $(AUTO_LOG_FILE))
         $(shell $(ECHO) "#vtk_rpath: $(VTK_RPATH)" >> $(AUTO_LOG_FILE))
         $(shell $(ECHO) "#vtk compile test:" >> $(AUTO_LOG_FILE))
-        TMP := $(shell $(ECHO) "$Hinclude <vtkVersion.h> \n int main(){}" > $(TMPFILE) && $(CXX) $(VTK_RPATH) $(EXTRA_LIB) $(VTK_LIB) $(VTK_INC) $(EXTRA_ADDLIBS) $(VTK_ADDLIBS) $(CCFLAGS) -xc++ -o /dev/null $(TMPFILE) &>> $(AUTO_LOG_FILE))
+        TMP := $(shell $(ECHO) "$Hinclude <vtkVersion.h> \n int main(){}" > $(TMPFILE) && $(CXX) $(TMPFILE) $(VTK_RPATH) $(EXTRA_LIB) $(VTK_LIB) $(VTK_INC) $(EXTRA_ADDLIBS) $(VTK_ADDLIBS) $(CCFLAGS) -xc++ -o /dev/null  &>> $(AUTO_LOG_FILE))
     endif
-    TMP := $(shell $(ECHO) '$Hinclude <vtkVersion.h> \n int main(){}' > $(TMPFILE) && $(CXX) $(VTK_RPATH) $(EXTRA_LIB) $(VTK_LIB) $(VTK_INC) $(EXTRA_ADDLIBS) $(VTK_ADDLIBS) $(CCFLAGS) -xc++ -o /dev/null $(TMPFILE) 2> /dev/null && echo 0 || echo -1)
+    TMP := $(shell $(ECHO) '$Hinclude <vtkVersion.h> \n int main(){}' > $(TMPFILE) && $(CXX) $(TMPFILE) $(VTK_RPATH) $(EXTRA_LIB) $(VTK_LIB) $(VTK_INC) $(EXTRA_ADDLIBS) $(VTK_ADDLIBS) $(CCFLAGS) -xc++ -o /dev/null 2> /dev/null && echo 0 || echo -1)
     ifeq ($(TMP), -1)
         $(error 'Could not compile VTK example with VTK_INC="$(VTK_INC)", VTK_LIB="$(VTK_LIB)" and VTK_ADDLIBS="$(VTK_ADDLIBS)"')
     endif
