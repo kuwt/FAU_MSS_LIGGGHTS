@@ -1009,7 +1009,7 @@ void FixInsert::restart(char *buf)
 
   // in order to be able to continue pouring with increased number of particles
   // if insert was already finished in run to be restarted
-  if(next_reneighbor_re != 0) next_reneighbor = next_reneighbor_re;
+  next_reneighbor = next_reneighbor_re;
 
 }
 
