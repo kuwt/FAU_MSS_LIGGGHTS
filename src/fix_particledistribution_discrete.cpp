@@ -461,7 +461,7 @@ int FixParticledistributionDiscrete::randomize_list(int ntotal,int insert_groupb
     }
 
     // wire lists, make sure in correct order (large to small particles)
-
+    /*
     n_pti = 0;
     for(int i = 0; i < ntemplates; i++)
     {
@@ -471,6 +471,54 @@ int FixParticledistributionDiscrete::randomize_list(int ntotal,int insert_groupb
             pti_list[n_pti + j] = templates[chosendist]->pti_list[j];
         }
         n_pti += parttogen[chosendist];
+    }
+    */
+
+    n_pti = 0;
+    int minparttogen = parttogen[0];
+    for(int i = 0; i < ntemplates; i++)
+    { 
+        if (parttogen[i] < minparttogen )
+        {
+            minparttogen = parttogen[i];
+        }
+    }
+    int parttogenBiteSize[ntemplates];
+    for(int i = 0; i < ntemplates; i++)
+    { 
+        parttogenBiteSize[i] = parttogen[i]/minparttogen;
+    }
+    int templateTracker[ntemplates];
+    for(int i = 0; i < ntemplates; i++)
+    { 
+        templateTracker[i] = 0;
+    }
+
+    int repeated = parttogen[0]/parttogenBiteSize[0];
+    for (int k = 0; k < repeated; ++k)
+    {
+        for(int i = 0; i < ntemplates; i++)
+        {
+            int chosendist = distorder[i];
+            for (int j = 0; j < parttogenBiteSize[chosendist]; j++)
+            {
+                pti_list[n_pti + j] = templates[chosendist]->pti_list[templateTracker[chosendist]+j];
+            }
+            templateTracker[chosendist] += parttogenBiteSize[chosendist];
+            n_pti += parttogenBiteSize[chosendist];
+        }
+    } 
+    for(int i = 0; i < ntemplates; i++)
+    {
+        if (templateTracker[i] < parttogen[i])
+        {
+            int remaining =  parttogen[i] - templateTracker[i];
+            for (int j = 0; j < remaining; j++)
+            {
+                pti_list[n_pti + j] = templates[i]->pti_list[templateTracker[i]+j];
+            }
+            n_pti += remaining;
+        }
     }
 
     if(n_pti != ninsert)
