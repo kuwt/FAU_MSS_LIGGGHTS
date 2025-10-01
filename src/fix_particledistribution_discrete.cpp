@@ -474,53 +474,57 @@ int FixParticledistributionDiscrete::randomize_list(int ntotal,int insert_groupb
     }
     */
 
+    
     n_pti = 0;
-    int minparttogen = parttogen[0];
+    // Find the smallest positive integer
+    int minPositive = INT_MAX;
     for(int i = 0; i < ntemplates; i++)
     { 
-        if (parttogen[i] < minparttogen )
+        if (parttogen[i] > 0 && parttogen[i] < minPositive )
         {
-            minparttogen = parttogen[i];
+            minPositive = parttogen[i];
         }
     }
-    int parttogenBiteSize[ntemplates];
-    for(int i = 0; i < ntemplates; i++)
-    { 
-        parttogenBiteSize[i] = parttogen[i]/minparttogen;
-    }
-    int templateTracker[ntemplates];
-    for(int i = 0; i < ntemplates; i++)
-    { 
-        templateTracker[i] = 0;
-    }
-
-    int repeated = parttogen[0]/parttogenBiteSize[0];
-    for (int k = 0; k < repeated; ++k)
+    if (minPositive > 0)
     {
+        int parttogenBiteSize[ntemplates];
+        for(int i = 0; i < ntemplates; i++)
+        { 
+            parttogenBiteSize[i] = parttogen[i]/minPositive;
+        }
+        int templateTracker[ntemplates];
+        for(int i = 0; i < ntemplates; i++)
+        { 
+            templateTracker[i] = 0;
+        }
+
+        int repeated = minPositive;
+        for (int k = 0; k < repeated; ++k)
+        {
+            for(int i = 0; i < ntemplates; i++)
+            {
+                int chosendist = distorder[i];
+                for (int j = 0; j < parttogenBiteSize[chosendist]; j++)
+                {
+                    pti_list[n_pti + j] = templates[chosendist]->pti_list[templateTracker[chosendist]+j];
+                }
+                templateTracker[chosendist] += parttogenBiteSize[chosendist];
+                n_pti += parttogenBiteSize[chosendist];
+            }
+        } 
         for(int i = 0; i < ntemplates; i++)
         {
-            int chosendist = distorder[i];
-            for (int j = 0; j < parttogenBiteSize[chosendist]; j++)
+            if (templateTracker[i] < parttogen[i])
             {
-                pti_list[n_pti + j] = templates[chosendist]->pti_list[templateTracker[chosendist]+j];
+                int remaining =  parttogen[i] - templateTracker[i];
+                for (int j = 0; j < remaining; j++)
+                {
+                    pti_list[n_pti + j] = templates[i]->pti_list[templateTracker[i]+j];
+                }
+                n_pti += remaining;
             }
-            templateTracker[chosendist] += parttogenBiteSize[chosendist];
-            n_pti += parttogenBiteSize[chosendist];
-        }
-    } 
-    for(int i = 0; i < ntemplates; i++)
-    {
-        if (templateTracker[i] < parttogen[i])
-        {
-            int remaining =  parttogen[i] - templateTracker[i];
-            for (int j = 0; j < remaining; j++)
-            {
-                pti_list[n_pti + j] = templates[i]->pti_list[templateTracker[i]+j];
-            }
-            n_pti += remaining;
         }
     }
-
     if(n_pti != ninsert)
         error->one(FLERR,"Internal error in FixParticledistributionDiscrete::randomize_list");
 
