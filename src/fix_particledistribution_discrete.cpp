@@ -478,14 +478,19 @@ int FixParticledistributionDiscrete::randomize_list(int ntotal,int insert_groupb
     n_pti = 0;
     // Find the smallest positive integer
     int minPositive = INT_MAX;
+    int maxValue = INT_MIN;
     for(int i = 0; i < ntemplates; i++)
     { 
         if (parttogen[i] > 0 && parttogen[i] < minPositive )
         {
             minPositive = parttogen[i];
         }
+        if (parttogen[i] > maxValue )
+        {
+            maxValue = parttogen[i];
+        }
     }
-    if (minPositive > 0)
+    if (minPositive > 0 && maxValue > 0)
     {
         int parttogenBiteSize[ntemplates];
         for(int i = 0; i < ntemplates; i++)
